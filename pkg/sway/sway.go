@@ -3,7 +3,6 @@ package sway
 import (
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"net"
 	"os"
 )
@@ -49,23 +48,22 @@ type Output struct {
 }
 
 type SwayConnection interface {
-	createSocket() net.Conn
-	getOutputs() []Output
+	CreateSocket() net.Conn
+	GetOutputs(sock net.Conn) []Output
 }
 
-func createSocket() net.Conn {
+func CreateSocket() (net.Conn, error) {
 	swaysockpath := os.Getenv("SWAYSOCK")
-
 	sock, err := net.Dial("unix", swaysockpath)
 	if err != nil {
 		panic(err)
 	}
-	return sock
+	return sock, nil
 }
 
-func getOutputs(sock net.UnixConn) []Output {
+func GetOutputs(sock net.Conn) []Output {
 	command := createCommand(GET_OUTPUTS, "")
-	_, err = sock.Write(command)
+	_, err := sock.Write(command)
 	if err != nil {
 		panic(err)
 	}
