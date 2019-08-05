@@ -1,4 +1,4 @@
-package main
+package sway
 
 import (
 	"encoding/binary"
@@ -48,23 +48,28 @@ type Output struct {
 	Current_mode      Mode
 }
 
-var sock net.Conn = nil
+type SwayConnection interface {
+	createSocket() net.Conn
+	getOutputs() []Output
+}
 
-func main() {
+func createSocket() net.Conn {
 	swaysockpath := os.Getenv("SWAYSOCK")
+
 	sock, err := net.Dial("unix", swaysockpath)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Message: ", getOutputs())
-	sock.Close()
-	return
-
+	return sock
 }
 
-func getOutputs() []Output {
+func getOutputs(sock net.UnixConn) []Output {
 	command := createCommand(GET_OUTPUTS, "")
-	sock.Write(command)
+	_, err = sock.Write(command)
+	if err != nil {
+		panic(err)
+	}
+	sock.Read(make([]byte, len(command)))
 	dec := json.NewDecoder(sock)
 	var o []Output
 	if err := dec.Decode(&o); err != nil {
@@ -76,13 +81,16 @@ func getOutputs() []Output {
 func createCommand(i IPC_command, message string) []byte {
 	i3ipcbytes := []byte("i3-ipc")
 	messagelengthbytes := make([]byte, 4)
-	messagebytes := []byte(message)
 	commandbytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(commandbytes, uint32(i))
-	binary.BigEndian.PutUint32(messagebytes, uint32(len(message)))
+	binary.LittleEndian.PutUint32(commandbytes, uint32(i))
+	binary.LittleEndian.PutUint32(messagelengthbytes, uint32(len(message)))
 	toreturn := i3ipcbytes
 	toreturn = append(toreturn, messagelengthbytes...)
 	toreturn = append(toreturn, commandbytes...)
-	toreturn = append(toreturn, messagebytes...)
+	if message != "" {
+		messagebytes := []byte(message)
+		toreturn = append(toreturn, messagebytes...)
+		toreturn = append(toreturn, []byte("\n")...)
+	}
 	return toreturn
 }
