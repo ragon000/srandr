@@ -26,6 +26,13 @@ const (
 	GET_SEATS  IPC_command = 101
 )
 
+type Rectangle struct {
+  X int
+  Y int
+  Width int
+  Height int
+}
+
 type Mode struct {
 	Width   int
 	Height  int
@@ -45,6 +52,7 @@ type Output struct {
 	Current_workspace string
 	Modes             []Mode
 	Current_mode      Mode
+        Rect              Rectangle
 }
 
 type SwayConnection interface {
