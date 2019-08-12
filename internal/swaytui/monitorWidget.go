@@ -3,7 +3,6 @@ package swaytui
 import (
 	"fmt"
 	"github.com/ragon000/srandr/pkg/sway"
-	"os"
 	tui "github.com/marcusolsson/tui-go"
 	"image"
 	"math"
@@ -13,14 +12,14 @@ type MonitorWidget struct {
 	tui.WidgetBase
 
 	hasBorder      bool
-	outputs        *[]sway.Output
-	SelectedOutput *sway.Output
+	outputs        []sway.Output
+	SelectedOutput sway.Output
 }
 
-func NewMonitorWidget(opts *[]sway.Output) *MonitorWidget {
+func NewMonitorWidget(opts []sway.Output) *MonitorWidget {
 	return &MonitorWidget{
 		outputs:        opts,
-		SelectedOutput: &(*opts)[0],
+		SelectedOutput: opts[0],
 	}
 
 }
@@ -34,7 +33,7 @@ func (wid *MonitorWidget) Draw(p *tui.Painter) {
 	} else {
 		borderoffset = 0
 	}
-	maxwh := totalWidthHeight(*wid.outputs)
+	maxwh := totalWidthHeight(wid.outputs)
 	totalwidth := float64(maxwh.X) * widthmodifier
 	totalheight := maxwh.Y
 	canvaswidth := wid.Size().X - (borderoffset * 2)
@@ -42,13 +41,13 @@ func (wid *MonitorWidget) Draw(p *tui.Painter) {
 	factor := math.Ceil(math.Max(totalwidth/float64(canvaswidth), float64(totalheight)/float64(canvasheight)))
 	//log.Printf("factor: %v, tw: %v, th: %v, cw: %v, ch: %v\n",factor,totalwidth,totalheight,canvaswidth,canvasheight)
 
-	for _, o := range *wid.outputs {
-          fmt.Fprintf(os.Stderr, "wid.SelectedOutput = %v, o = %v", &wid.SelectedOutput.Name, &o.Name)
+	for _, o := range wid.outputs {
+
 		x := int(float64(o.Rect.X)*widthmodifier/factor) + borderoffset
 		y := int(float64(o.Rect.Y)/factor) + borderoffset
 		w := int(float64(o.Rect.Width) * widthmodifier / factor)
 		h := int(float64(o.Rect.Height) / factor)
-		if &o == wid.SelectedOutput {
+		if o.IsEqualTo(wid.SelectedOutput) {
 			p.WithStyle("red", func(p *tui.Painter) {
 				p.DrawRect(x, y, w, h)
 			})

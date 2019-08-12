@@ -3,11 +3,16 @@ package swaytui
 import (
 	tui "github.com/marcusolsson/tui-go"
 	"github.com/ragon000/srandr/pkg/sway"
-	//	"log"
+        "fmt"
 	//	"math"
 	"strconv"
 	//	"time"
 )
+
+type OutputsWithSelected struct {
+	SelectedOutput sway.Output
+	Outputs        []sway.Output
+}
 
 func boolToString(b bool) string {
 	if b {
@@ -20,6 +25,7 @@ func boolToString(b bool) string {
 
 func Start() {
 	swayconn, err := sway.CreateSwayConnection()
+	outputs := OutputsWithSelected{Outputs: swayconn.Outputs, SelectedOutput: swayconn.Outputs[0]}
 	defer swayconn.CloseConnection()
 	if err != nil {
 		panic(err)
@@ -31,18 +37,21 @@ func Start() {
 	outputtablebox.SetSizePolicy(tui.Maximum, tui.Maximum)
 	outputtablebox.SetBorder(true)
 	outputtablebox.SetTitle("Outputs")
-	redrawOutputTable(swayconn.Outputs, outputtable)
+	redrawOutputTable(outputs, outputtable)
 
-	outputwidget := NewMonitorWidget(&swayconn.Outputs)
+	outputwidget := NewMonitorWidget(swayconn.Outputs)
 	outputwidget.SetSizePolicy(tui.Expanding, tui.Expanding)
-	outputwidget.SetBorder(true)
+	outputwidget.SetBorder(false)
+        outputwidgetbox := tui.NewVBox(outputwidget)
+        outputwidgetbox.SetBorder(true)
+        outputwidgetbox.SetSizePolicy(tui.Expanding, tui.Expanding)
 
-	tutorialtext := tui.NewLabel("q -> exit, hjkl -> movement, <enter> -> select, r -> reset")
+	tutorialtext := tui.NewLabel("a -> apply, q -> exit, hjkl -> movement, <enter> -> Change Modes, r -> reset")
 	tutorialtextbox := tui.NewVBox(tutorialtext)
 	tutorialtextbox.SetBorder(true)
 	root := tui.NewVBox(
 		outputtablebox,
-		outputwidget,
+		outputwidgetbox,
 		tutorialtextbox,
 	)
 	root.SetBorder(true)
@@ -53,44 +62,95 @@ func Start() {
 	}
 	theme := tui.NewTheme()
 	theme.SetStyle("red", tui.Style{Fg: tui.ColorRed})
+	theme.SetStyle("selected", tui.Style{Bg: tui.ColorBlack})
 	theme.SetStyle("default", tui.Style{Fg: tui.ColorWhite})
 	theme.Style("default")
 	ui.SetTheme(theme)
-  ui.SetKeybinding("l", func() {
-    outputwidget.SelectedOutput = sway.RightOf(outputwidget.SelectedOutput, &swayconn.Outputs)
-  })
-  ui.SetKeybinding("h", func() {
-    outputwidget.SelectedOutput = sway.LeftOf(outputwidget.SelectedOutput, &swayconn.Outputs)
-  })
-  ui.SetKeybinding("j", func() {
-    outputwidget.SelectedOutput = sway.DownOf(outputwidget.SelectedOutput, &swayconn.Outputs)
-  })
-  ui.SetKeybinding("k", func() {
-    outputwidget.SelectedOutput = sway.UpOf(outputwidget.SelectedOutput, &swayconn.Outputs)
-  })
-	ui.SetKeybinding("q", func() { ui.Quit() })
+
+        applyingModes := false
+
+        ui.SetKeybinding("Enter", func() {
+          applyingModes = true
+
+        modeBox := tui.NewVBox()
+        for _, m := range outputs.SelectedOutput.Modes {
+          button := tui.NewButton(fmt.Sprintf("%vx%v@%v", m.Width, m.Height, m.Refresh))
+
+          button.OnActivated(func(b *tui.Button){
+            outputs.SelectedOutput.Current_mode = m
+          })
+          modeBox.Append(button)
+        }
+        activeButton := tui.NewButton("Active")
+        selectBox := tui.NewHBox(activeButton, modeBox)
+        outputwidgetbox.Remove(0)
+        outputwidgetbox.Append(selectBox)
+
+        })
+        ui.SetKeybinding("a", func() {
+          err := swayconn.ApplyOutputs(outputs.Outputs)
+          if err != nil {
+            panic(err)
+          }
+
+        })
+	ui.SetKeybinding("l", func() {
+          if !applyingModes {
+		outputwidget.SelectedOutput = sway.RightOf(outputs.SelectedOutput, outputs.Outputs)
+              }
+	})
+	ui.SetKeybinding("h", func() {
+          if !applyingModes {
+		outputwidget.SelectedOutput = sway.LeftOf(outputs.SelectedOutput, outputs.Outputs)
+              }
+	})
+	ui.SetKeybinding("j", func() {
+          if !applyingModes {
+		outputwidget.SelectedOutput = sway.DownOf(outputs.SelectedOutput, outputs.Outputs)
+              }
+	})
+	ui.SetKeybinding("k", func() {
+          if !applyingModes {
+		outputwidget.SelectedOutput = sway.UpOf(outputs.SelectedOutput, outputs.Outputs)
+              }
+	})
+	ui.SetKeybinding("q", func() {
+          if !applyingModes {
+          ui.Quit() 
+              } else {
+            outputwidgetbox.Remove(0)
+            outputwidgetbox.Append(outputwidget)
+
+              }
+        })
 	ui.SetKeybinding("r", func() {
+          if !applyingModes {
 		swayconn.GetOutputsFromSocket()
-		redrawOutputTable(swayconn.Outputs, outputtable)
+                outputs.Outputs = swayconn.Outputs
+		redrawOutputTable(outputs, outputtable)
+              }
 	})
 	if err := ui.Run(); err != nil {
 		panic(err)
 	}
 }
 
-func redrawOutputTable(outputs []sway.Output, outputtable *tui.Table) {
-	outputtable.RemoveRows()
-	for _, o := range generateOutputTableRows(outputs) {
-		outputtable.AppendRow(o...)
 
+
+
+func redrawOutputTable(outputs OutputsWithSelected, outputtable *tui.Table) {
+	outputtable.RemoveRows()
+	outputstrings := generateOutputTableRows(outputs)
+	for _, o := range outputstrings {
+		outputtable.AppendRow(o...)
 	}
 
 }
 
-func generateOutputTableRows(outputs []sway.Output) [][]tui.Widget {
-
-	table := make([][]tui.Widget, len(outputs)+1, 4)
-	table[0] = []tui.Widget{tui.NewLabel("Name"),
+func generateOutputTableRows(outputs OutputsWithSelected) [][]tui.Widget {
+	table := make([][]tui.Widget, len(outputs.Outputs)+1, 4)
+	table[0] = []tui.Widget{
+                tui.NewLabel("  Name"),
 		tui.NewLabel("Make"),
 		tui.NewLabel("Model"),
 		tui.NewLabel("Active"),
@@ -100,9 +160,9 @@ func generateOutputTableRows(outputs []sway.Output) [][]tui.Widget {
 		tui.NewLabel("Y"),
 	}
 
-	for i, o := range outputs {
+	for i, o := range outputs.Outputs {
 		table[i+1] = []tui.Widget{
-			tui.NewLabel(o.Name),
+			tui.NewLabel(selectedSign(o, outputs) + o.Name),
 			tui.NewLabel(o.Make),
 			tui.NewLabel(o.Model),
 			tui.NewLabel(strconv.FormatBool(o.Active)),
@@ -113,4 +173,11 @@ func generateOutputTableRows(outputs []sway.Output) [][]tui.Widget {
 		}
 	}
 	return table
+}
+
+func selectedSign(o sway.Output, outputs OutputsWithSelected) string{
+    if o.IsEqualTo(outputs.SelectedOutput) {
+      return "> "
+    }
+    return "  "
 }

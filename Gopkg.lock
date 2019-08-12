@@ -2,16 +2,49 @@
 
 
 [[projects]]
-  digest = "1:f913db46dd2604735e5fe8f08fcf1490509a208697b7d63ac301ff5a84ece948"
-  name = "github.com/gizak/termui"
+  digest = "1:0e16b03c72bd42739ca68d055c10369e60d17838428f512f3b29ae115ba788e0"
+  name = "github.com/gdamore/encoding"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "6289cdc94c00ac4aa177771c5fce7af2f96b626d"
+  version = "v1.0.0"
+
+[[projects]]
+  digest = "1:0c4039930c835217e8bd7b4b58f9eccae17ff87720d2f62447ba8a416cdb7d7f"
+  name = "github.com/gdamore/tcell"
   packages = [
-    "v3",
-    "v3/drawille",
-    "v3/widgets",
+    ".",
+    "terminfo",
+    "terminfo/a/ansi",
+    "terminfo/base",
+    "terminfo/dynamic",
+    "terminfo/v/vt100",
+    "terminfo/v/vt102",
+    "terminfo/v/vt220",
+    "terminfo/x/xterm",
   ]
   pruneopts = "UT"
-  revision = "4cca61d83fa2cc0f485c478ff768b0108f6591d6"
-  version = "v3.1.0"
+  revision = "1922b3786eaefecbba6fd8e11dbfd3531fad7a54"
+  version = "v1.2.0"
+
+[[projects]]
+  digest = "1:39de67207027b7374272d5ec9b1bf85457714150ba1263e8d236316629dad570"
+  name = "github.com/lucasb-eyer/go-colorful"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "30298f24079860c4dee452fdef6519b362a4a026"
+  version = "v1.0.2"
+
+[[projects]]
+  digest = "1:d96cb3ed0e90e9f15a50a9fe2dc49a30eef739648547e1b664868ea73fbf294b"
+  name = "github.com/marcusolsson/tui-go"
+  packages = [
+    ".",
+    "wordwrap",
+  ]
+  pruneopts = "UT"
+  revision = "4bb09120fbbb8b6e7d44d802f1e66f78bb4650a0"
+  version = "v0.4.0"
 
 [[projects]]
   digest = "1:0356f3312c9bd1cbeda81505b7fd437501d8e778ab66998ef69f00d7f9b3a0d7"
@@ -31,18 +64,29 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f70e9460c913251190917efb3e565f01b13cd190dc1aabe7a83f7b0a260fb54f"
-  name = "github.com/nsf/termbox-go"
-  packages = ["."]
+  digest = "1:fdfd985fe7956d77128572032636b5c1b7b58a81acd7089e96923e2f9539c573"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
   pruneopts = "UT"
-  revision = "eeb6cd0a176293eeb2c69270d83835972e3567bc"
+  revision = "51ab0e2deafac1f46c46ad59cf0921be2f180c3d"
+
+[[projects]]
+  digest = "1:cc38c2209a6c1f94debdfd96934865a258eac2f905a8d3f8fd56e7d0cfb85edd"
+  name = "golang.org/x/text"
+  packages = [
+    "encoding",
+    "encoding/internal/identifier",
+    "internal/gen",
+    "transform",
+    "unicode/cldr",
+  ]
+  pruneopts = "UT"
+  revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
+  version = "v0.3.2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = [
-    "github.com/gizak/termui/v3",
-    "github.com/gizak/termui/v3/widgets",
-  ]
+  input-imports = ["github.com/marcusolsson/tui-go"]
   solver-name = "gps-cdcl"
   solver-version = 1
