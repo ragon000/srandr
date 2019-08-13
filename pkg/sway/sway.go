@@ -28,6 +28,11 @@ const (
 	GET_SEATS  IPC_command = 101
 )
 
+type OutputsWithSelected struct {
+	SelectedOutput *Output
+	Outputs        []Output
+}
+
 type SwayConnection struct {
 	Outputs []Output
 	sock    net.Conn
@@ -58,77 +63,64 @@ type Output struct {
 	Transform         string
 	Current_workspace string
 	Modes             []Mode
-	Current_mode      Mode
+	Current_mode      *Mode
 	Rect              Rectangle
 }
 
 func (s *SwayConnection) CloseConnection() {
-  s.sock.Close()
+	s.sock.Close()
 }
 
-
-func (s *Output) IsEqualTo(o Output)  bool{
-  return s.Name == o.Name && s.Serial == o.Serial
+func (s *Mode) IsEqualTo(m Mode) bool {
+	return s.Width == m.Width && s.Height == m.Height && s.Refresh == m.Refresh
 }
 
-func UpOf(o Output, outputs []Output) Output{
-  var returnOutput Output
-
-  for i, out := range outputs {
-    if i == 0 {
-      returnOutput = out
-    }else{
-    if returnOutput.Rect.Y > out.Rect.Y && o.Rect.Y < out.Rect.Y {
-      returnOutput = out
-    }
-    }
-  }
-  return returnOutput
+func (s *Output) IsEqualTo(o Output) bool {
+	return s.Name == o.Name && s.Serial == o.Serial
 }
 
-func DownOf(o Output, outputs []Output) Output{
-  var returnOutput Output
+func UpOf(o *Output, outputs []Output) *Output {
+        returnOutput := o
 
-  for i, out := range outputs {
-    if i == 0 {
-      returnOutput = out
-    }else{
-    if returnOutput.Rect.Y < out.Rect.Y && o.Rect.Y > out.Rect.Y {
-      returnOutput = out
-    }
-    }
-  }
-  return returnOutput
+	for i, out := range outputs {
+			if returnOutput.Rect.Y > out.Rect.Y && o.Rect.Y > out.Rect.Y {
+				returnOutput = &outputs[i]
+			}
+	}
+	return returnOutput
 }
 
-func RightOf(o Output, outputs []Output) Output{
-  var returnOutput Output
+func DownOf(o *Output, outputs []Output) *Output {
+        returnOutput := o
 
-  for i, out := range outputs {
-    if i == 0 {
-      returnOutput = out
-    }else{
-    if returnOutput.Rect.X > out.Rect.X && o.Rect.X < out.Rect.X {
-      returnOutput = out
-    }
-    }
-  }
-  return returnOutput
+	for i, out := range outputs {
+			if returnOutput.Rect.Y < out.Rect.Y && o.Rect.Y < out.Rect.Y {
+				returnOutput = &outputs[i]
+			}
+	}
+	return returnOutput
 }
 
-func LeftOf(o Output, outputs []Output) Output{
-  var returnOutput Output
+func RightOf(o *Output, outputs []Output) *Output {
+        returnOutput := o
 
-  for i, out := range outputs {
-    if i == 0 {
-      returnOutput = out
-    }else{
-    if returnOutput.Rect.X < out.Rect.X && o.Rect.X > out.Rect.X {
-      returnOutput = out
-    }
-    }
-  }
-  return returnOutput
+	for i, out := range outputs {
+			if returnOutput.Rect.X < out.Rect.X && o.Rect.X < out.Rect.X {
+				returnOutput = &outputs[i]
+		}
+	}
+	return returnOutput
+}
+
+func LeftOf(o *Output, outputs []Output) *Output {
+        returnOutput := o
+
+	for i, out := range outputs {
+			if returnOutput.Rect.X > out.Rect.X && o.Rect.X > out.Rect.X {
+				returnOutput = &outputs[i]
+			}
+	}
+	return returnOutput
 }
 
 func CreateSwayConnection() (SwayConnection, error) {
@@ -137,15 +129,18 @@ func CreateSwayConnection() (SwayConnection, error) {
 	if err != nil {
 		return SwayConnection{}, err
 	}
-        s.GetOutputsFromSocket()
+	err = s.GetOutputsFromSocket()
+	if err != nil {
+		return SwayConnection{}, err
+	}
 	return s, nil
 }
 
-func (s *SwayConnection) applyingModes(o []Output) error{
-    s.
-
-
-}
+//func (s *SwayConnection) applyingModes(o []Output) error{
+//    s.
+//
+//
+//}
 
 // Creates the socket to communicate with sway
 // Uses the environment variable $SWAYSOCK to find the socket path

@@ -10,16 +10,14 @@ import (
 
 type MonitorWidget struct {
 	tui.WidgetBase
+        outputs *sway.OutputsWithSelected
 
 	hasBorder      bool
-	outputs        []sway.Output
-	SelectedOutput sway.Output
 }
 
-func NewMonitorWidget(opts []sway.Output) *MonitorWidget {
+func NewMonitorWidget(opts *sway.OutputsWithSelected) *MonitorWidget {
 	return &MonitorWidget{
 		outputs:        opts,
-		SelectedOutput: opts[0],
 	}
 
 }
@@ -33,7 +31,7 @@ func (wid *MonitorWidget) Draw(p *tui.Painter) {
 	} else {
 		borderoffset = 0
 	}
-	maxwh := totalWidthHeight(wid.outputs)
+	maxwh := totalWidthHeight(wid.outputs.Outputs)
 	totalwidth := float64(maxwh.X) * widthmodifier
 	totalheight := maxwh.Y
 	canvaswidth := wid.Size().X - (borderoffset * 2)
@@ -41,13 +39,13 @@ func (wid *MonitorWidget) Draw(p *tui.Painter) {
 	factor := math.Ceil(math.Max(totalwidth/float64(canvaswidth), float64(totalheight)/float64(canvasheight)))
 	//log.Printf("factor: %v, tw: %v, th: %v, cw: %v, ch: %v\n",factor,totalwidth,totalheight,canvaswidth,canvasheight)
 
-	for _, o := range wid.outputs {
+	for _, o := range wid.outputs.Outputs {
 
 		x := int(float64(o.Rect.X)*widthmodifier/factor) + borderoffset
 		y := int(float64(o.Rect.Y)/factor) + borderoffset
-		w := int(float64(o.Rect.Width) * widthmodifier / factor)
-		h := int(float64(o.Rect.Height) / factor)
-		if o.IsEqualTo(wid.SelectedOutput) {
+		w := int(float64(o.Current_mode.Width) * widthmodifier / factor)
+		h := int(float64(o.Current_mode.Height) / factor)
+		if o.IsEqualTo(*wid.outputs.SelectedOutput) {
 			p.WithStyle("red", func(p *tui.Painter) {
 				p.DrawRect(x, y, w, h)
 			})
@@ -55,9 +53,11 @@ func (wid *MonitorWidget) Draw(p *tui.Painter) {
 			p.DrawRect(x, y, w, h)
 		}
 		mx, my := middle(x, y, w, h)
-		p.DrawText(mx-(len(o.Name)/2), my, o.Name)
-		whtext := fmt.Sprintf("%dx%d", o.Rect.Width, o.Rect.Height)
-		p.DrawText(mx-(len(whtext)/2), my+1, whtext)
+		p.DrawText(mx-(len(o.Name)/2), my-1, o.Name)
+		whtext := fmt.Sprintf("%dx%d", o.Current_mode.Width, o.Current_mode.Height)
+                activetext := fmt.Sprintf("Active: %v",o.Active)
+		p.DrawText(mx-(len(whtext)/2), my, whtext)
+		p.DrawText(mx-(len(activetext)/2), my+1, activetext)
 	}
 
 }
@@ -76,8 +76,8 @@ func totalWidthHeight(outputs []sway.Output) image.Point {
 	width := 0
 	height := 0
 	for _, o := range outputs {
-		width = int(math.Max(float64(o.Rect.Width), float64(width)))
-		height = int(math.Max(float64(o.Rect.Height), float64(height)))
+		width = int(math.Max(float64(o.Current_mode.Width+o.Rect.X), float64(width)))
+		height = int(math.Max(float64(o.Current_mode.Height+o.Rect.Y), float64(height)))
 	}
 	return image.Pt(width, height)
 }
